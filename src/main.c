@@ -956,22 +956,10 @@ static int do_server(int type)
 	int fd;
 	int rv = -1;
 
-	if (!cl.debug) {
-		if (daemon(0, 0) < 0) {
-			perror("daemon error");
-			exit(EXIT_FAILURE);
-		}
-	}
-
 	setup_logging();
 	fd = lockfile();
 	if (fd < 0)
 		return fd;
-
-	if (type == ARBITRATOR)
-		log_info("BOOTH arbitrator daemon started");
-	else if (type == SITE)
-		log_info("BOOTH cluster site daemon started");
 
 	set_scheduler();
 	set_oom_adj(-16);
@@ -979,6 +967,18 @@ static int do_server(int type)
 	rv = setup(type);
 	if (rv < 0)
 		goto fail;
+
+	if (!cl.debug) {
+		if (daemon(0, 0) < 0) {
+			perror("daemon error");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	if (type == ARBITRATOR)
+		log_info("BOOTH arbitrator daemon started");
+	else if (type == SITE)
+		log_info("BOOTH cluster site daemon started");
 
 	rv = loop();
 	if (rv < 0)
