@@ -74,6 +74,7 @@ struct command_line {
 	int op;			/* OP_ */
 	int debug;
 	int force;
+	char configfile[BOOTH_NAME_LEN];
 	char site[BOOTH_NAME_LEN];
 	char ticket[BOOTH_NAME_LEN]; 
 };
@@ -366,7 +367,7 @@ static int setup_config(int type)
 {
 	int rv;
 
-	rv = read_config(BOOTH_DEFAULT_CONF);
+	rv = read_config(cl.configfile);
 	if (rv < 0)
 		goto out;
 
@@ -783,6 +784,7 @@ static void print_usage(void)
 	printf("  revoke:       Revoke ticket T(-t T) from site S(-s S)\n");
 	printf("\n");
 	printf("Options:\n");
+	printf("  -c FILE       Specify config file [default " BOOTH_DEFAULT_CONF "]\n");
 	printf("  -D            Enable debugging to stderr and don't fork\n");
 	printf("  -t            ticket name\n");
 	printf("  -s            site name\n");
@@ -791,7 +793,7 @@ static void print_usage(void)
 	printf("  -h            Print this help, then exit\n");
 }
 
-#define OPTION_STRING		"Dt:s:fh"
+#define OPTION_STRING		"c:Dt:s:fh"
 
 static int read_arguments(int argc, char **argv)
 {
@@ -858,6 +860,9 @@ static int read_arguments(int argc, char **argv)
 		optchar = getopt(argc, argv, OPTION_STRING);
 
 		switch (optchar) {
+		case 'c':
+			strncpy(cl.configfile, optarg, BOOTH_NAME_LEN);
+			break;
 		case 'D':
 			cl.debug = 1;
 			log_logfile_priority = LOG_DEBUG;
@@ -1022,6 +1027,7 @@ int main(int argc, char *argv[])
 	int rv;
 
 	memset(&cl, 0, sizeof(cl));
+	strncpy(cl.configfile, BOOTH_DEFAULT_CONF, BOOTH_NAME_LEN);
 
 	rv = read_arguments(argc, argv);
 	if (rv < 0)
