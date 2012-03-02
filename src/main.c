@@ -866,7 +866,7 @@ static int read_arguments(int argc, char **argv)
 
 		case 't':
 			if (cl.op == OP_GRANT || cl.op == OP_REVOKE)
-				strcpy(cl.ticket, optarg);
+				strncpy(cl.ticket, optarg, BOOTH_NAME_LEN);
 			else {
 				print_usage();
 				exit(EXIT_FAILURE);
@@ -875,7 +875,7 @@ static int read_arguments(int argc, char **argv)
 
 		case 's':
 			if (cl.op == OP_GRANT || cl.op == OP_REVOKE)
-				strcpy(cl.site, optarg);
+				strncpy(cl.site, optarg, BOOTH_NAME_LEN);
 			else {
 				print_usage();
 				exit(EXIT_FAILURE);
