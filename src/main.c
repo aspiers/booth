@@ -399,11 +399,9 @@ static int setup_timer(void)
 	return timerlist_init();
 }
 
-static int loop(int type)
+static int setup(int type)
 {
-	void (*workfn) (int ci);
-	void (*deadfn) (int ci);
-	int rv, i;
+	int rv;
 
 	rv = setup_config(type);
 	if (rv < 0)
@@ -425,6 +423,18 @@ static int loop(int type)
 	if (rv < 0)
 		goto fail;
 	client_add(rv, process_listener, NULL);
+
+	return 0;
+
+fail:
+	return -1;
+}
+
+static int loop(void)
+{
+	void (*workfn) (int ci);
+	void (*deadfn) (int ci);
+	int rv, i;
 
         while (1) {
                 rv = poll(pollfd, client_maxi + 1, poll_timeout);
@@ -962,7 +972,11 @@ static int do_arbitrator(void)
 	set_scheduler();
 	set_oom_adj(-16);
 
-	rv = loop(ARBITRATOR);
+	rv = setup(ARBITRATOR);
+	if (rv < 0)
+		goto fail;
+
+	rv = loop();
 	if (rv < 0)
 		goto fail;
 
@@ -995,7 +1009,11 @@ static int do_site(void)
 	set_scheduler();
 	set_oom_adj(-16);
 
-	rv = loop(SITE);
+	rv = setup(SITE);
+	if (rv < 0)
+		goto fail;
+
+	rv = loop();
 	if (rv < 0)
 		goto fail;
 
