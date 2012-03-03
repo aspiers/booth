@@ -961,7 +961,6 @@ static int do_server(int type)
 	int fd;
 	int rv = -1;
 
-	setup_logging();
 	fd = lockfile();
 	if (fd < 0)
 		return fd;
@@ -990,7 +989,6 @@ static int do_server(int type)
 		goto fail;
 
 	unlink_lockfile(fd);
-	close_logging();
 
 	return 0;
 fail:
@@ -1000,8 +998,6 @@ fail:
 static int do_client(void)
 {
 	int rv = -1;
-
-	setup_logging();
 
 	switch (cl.op) {
 	case OP_LIST:
@@ -1017,8 +1013,6 @@ static int do_client(void)
 		break;
 	}
 	
-	close_logging();
-
 	return rv;
 }
 
@@ -1033,6 +1027,8 @@ int main(int argc, char *argv[])
 	if (rv < 0)
 		goto out;
 
+	setup_logging();
+
 	switch (cl.type) {
 	case ACT_ARBITRATOR:
 		rv = do_server(ARBITRATOR);
@@ -1046,6 +1042,8 @@ int main(int argc, char *argv[])
 		rv = do_client();
 		break;
 	}
+
+	close_logging();
 
 out:
 	return rv ? EXIT_FAILURE : EXIT_SUCCESS;
