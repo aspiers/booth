@@ -56,6 +56,7 @@ struct client *client = NULL;
 struct pollfd *pollfd = NULL;
 
 int poll_timeout = -1;
+int lockfd = -1;
 
 typedef enum {
 	ACT_ARBITRATOR = 1,
@@ -712,30 +713,30 @@ static int lockfile(void)
 	char path[PATH_MAX];
 	char buf[16];
 	struct flock lock;
-	int fd, rv;
+	int rv;
 
 	snprintf(path, PATH_MAX, "%s/%s", BOOTH_RUN_DIR, BOOTH_LOCKFILE_NAME);
 
-	fd = open(path, O_CREAT|O_WRONLY, 0666);
-	if (fd < 0) {
+	lockfd = open(path, O_CREAT|O_WRONLY, 0666);
+	if (lockfd < 0) {
                 log_error("lockfile open error %s: %s",
                           path, strerror(errno));
                 return -1;
-        }       
+	}
 
         lock.l_type = F_WRLCK;
         lock.l_start = 0;
         lock.l_whence = SEEK_SET;
         lock.l_len = 0;
         
-        rv = fcntl(fd, F_SETLK, &lock);
+        rv = fcntl(lockfd, F_SETLK, &lock);
         if (rv < 0) {
                 log_error("lockfile setlk error %s: %s",
                           path, strerror(errno));
                 goto fail;
         }
 
-        rv = ftruncate(fd, 0);
+        rv = ftruncate(lockfd, 0);
         if (rv < 0) {
                 log_error("lockfile truncate error %s: %s",
                           path, strerror(errno));
@@ -745,26 +746,31 @@ static int lockfile(void)
         memset(buf, 0, sizeof(buf));
         snprintf(buf, sizeof(buf), "%d\n", getpid());
 
-        rv = write(fd, buf, strlen(buf));
+        rv = write(lockfd, buf, strlen(buf));
         if (rv <= 0) {
                 log_error("lockfile write error %s: %s",
                           path, strerror(errno));
                 goto fail;
         }
 
-        return fd;
+        return lockfd;
  fail:
-        close(fd);
+        close(lockfd);
+	lockfd = -1;
+
         return -1;
 }
 
-static void unlink_lockfile(int fd)
+static void unlink_lockfile(void)
 {
 	char path[PATH_MAX];
 
+	if (lockfd < 0)
+		return;
+
 	snprintf(path, PATH_MAX, "%s/%s", BOOTH_RUN_DIR, BOOTH_LOCKFILE_NAME);
 	unlink(path);
-	close(fd);
+	close(lockfd);
 }
 
 static void print_usage(void)
@@ -958,12 +964,11 @@ static void set_oom_adj(int val)
 
 static int do_server(int type)
 {
-	int fd;
 	int rv = -1;
 
-	fd = lockfile();
-	if (fd < 0)
-		return fd;
+	rv = lockfile();
+	if (rv < 0)
+		return rv;
 
 	set_scheduler();
 	set_oom_adj(-16);
@@ -988,11 +993,11 @@ static int do_server(int type)
 	if (rv < 0)
 		goto fail;
 
-	unlink_lockfile(fd);
+	unlink_lockfile();
 	return 0;
 
 fail:
-	unlink_lockfile(fd);
+	unlink_lockfile();
 	return -1;
 }
 
