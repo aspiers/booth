@@ -989,9 +989,10 @@ static int do_server(int type)
 		goto fail;
 
 	unlink_lockfile(fd);
-
 	return 0;
+
 fail:
+	unlink_lockfile(fd);
 	return -1;
 }
 
